@@ -140,7 +140,7 @@ int lista_retira_inicio(lista_t *l, metadado_t *elemento) {
 	l->tamanho--;
 
 	temp->prox = NULL;
-	free(temp->elemento);
+	desaloca_metadado(temp->elemento);
 
 	free(temp);
 
@@ -171,6 +171,7 @@ int lista_retira_fim(lista_t *l) {
 
 	/*NodoAtual aponta para o penúltimo,
 	 * logo podemos remover NodoAtual->prox */
+	desaloca_metadado(NodoAtual->prox->elemento);
 	free(NodoAtual->prox);
 	NodoAtual->prox = NULL;
 	l->tamanho--;
@@ -255,7 +256,7 @@ int lista_retira_elemento(lista_t *l, metadado_t *elemento) {
 			del = NodoAtual->prox;
 			NodoAtual->prox = (NodoAtual->prox)->prox;
 
-			free(del->elemento);
+			desaloca_metadado(del->elemento);
 
 			del->prox = NULL;
 			l->tamanho--;
@@ -293,7 +294,8 @@ void lista_insere_metadados(FILE *file, lista_t *l) {
 		exit(1);
 	}
 
-	while(fread(buffer, sizeof(metadado_t), 1, file)) {
+	// Captura o metadado.
+	while(le_metadado(file, buffer) == 1) {
 		lista_insere_fim(l, buffer);
 		if((buffer = aloca_metadado()) == NULL) {
 			fprintf(stderr, "Erro ao alocar metadado.\n");
@@ -314,12 +316,12 @@ void lista_escreve_arquivo(FILE *file, lista_t *l) {
 
 	if(lista_vazia(l) == 0) {
 		while(NodoAtual->prox != NULL) {
-			fwrite(NodoAtual->elemento, sizeof(metadado_t), 1, file);
+			escreve_metadado(file, NodoAtual->elemento);
 			NodoAtual = NodoAtual->prox;
 		}
 
 		// Imprimindo o último elemento da lista.
-		fwrite(NodoAtual->elemento, sizeof(metadado_t), 1, file);
+		escreve_metadado(file, NodoAtual->elemento);
 	}
 }
 
@@ -354,5 +356,23 @@ nodo_l_t *getNodo(lista_t *l, char *nome) {
 		}
 		NodoAtual = NodoAtual->prox;
 	}
+	// Último nodo
+	if(strcmp(NodoAtual->elemento->nome, nome) == 0) {
+		return NodoAtual;
+	}
 	return NULL;
+}
+
+/**
+ * Função que retorna o metadado com o nome especificado. Retorna NULL caso contrário.
+ */
+metadado_t *getMetadados(lista_t *l, char *nome) {
+	nodo_l_t *nodo;
+	nodo = l->ini;
+
+	if(!(nodo = getNodo(l, nome))){
+		return NULL;
+	}
+	
+	return nodo->elemento;
 }

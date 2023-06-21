@@ -74,7 +74,8 @@ int fileExists(FILE *vpp, char *fileName, lista_t *l, nodo_l_t **info) {
 	char nome[256];
 
 	// Formata o nome que veio do terminal.
-	formataNome(nome, fileName);
+	strcpy(nome, fileName);
+	retiraEspacos(nome);
 
 	// Salta-se até o diretório.
 	seekDiretorio(vpp);
@@ -82,28 +83,13 @@ int fileExists(FILE *vpp, char *fileName, lista_t *l, nodo_l_t **info) {
 	// Insere todos os metadados na lista;
 	lista_insere_metadados(vpp, l);
 
-	// lista_pertence procura o nome dentro da lista e altera o ponteiro do nodo, agora apontando o metadado que pertence.
-	// Caso não existao o arquivo, a lista não será mais necessária.
+	// lista_pertence procura o nome dentro da lista.
 	if(lista_pertence(l, nome) == 0) {
-		lista_destroi(l);
 		return 0;
 	};
-
+ 	// Alterado o ponteiro do nodo, agora apontando o metadado que pertence.
 	*info = getNodo(l, nome);
 	return 1;
-	// // Compara a string formatada (sem espaços e relativa), com a armazenada no buffer
-	// while(fread(info, sizeof(metadado_t), 1, vpp) != 0) {
-	// 	if(strcmp(info->nome, caminho) == 0) {
-	// 		free(caminho);
-	// 		seekDiretorio(vpp);
-	// 		return 1;
-	// 	}
-	// }
-
-	// // Caso contrário, os metadados serão vazios.
-	// desaloca_metadado(info);
-	// free(caminho);
-	// return 0;
 }
 
 // /**

@@ -18,6 +18,6 @@ void forja(char *vppName, char *fileName);
 /**
  * Função que lista todos os arquivos presentes no archiver.
  */
-void lista_arquivos(char *vppName);
+void lista_arquivos(char *vppName, char **fileNames);
 
 #endif

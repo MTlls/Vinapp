@@ -114,4 +114,9 @@ void lista_retrocede_dados(nodo_l_t *nodo);
 */
 nodo_l_t *getNodo(lista_t* l,  char *nome);
 
+
+/**
+ * Função que retorna os metadados que estão dentro da lista se conter o mesmo nome especificado em "nome". Retorna NULL caso não encotnre.
+ */
+metadado_t *getMetadados(lista_t *l, char *nome);
 #endif

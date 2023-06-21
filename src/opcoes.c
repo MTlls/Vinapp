@@ -2,9 +2,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/stat.h>
-
+#include <unistd.h>
 
 #include "data.h"
 #include "libLista.h"
@@ -31,9 +30,11 @@ void remove_arquivo(char *vppName, char *fileName) {
 	// Aloca espaço para a lista.
 	else if((lista = lista_cria()) == NULL) {
 		fprintf(stderr, "Erro ao iniciar a lista.\n");
+		fclose(vpp);
 		exit(1);
 	} else if(fileExists(vpp, fileName, lista, &nodo_alvo) == 0) {
 		fprintf(stderr, "Erro: Arquivo inexistente.\n");
+		lista_destroi(lista);
 		fclose(vpp);
 		exit(1);
 	}
@@ -46,14 +47,6 @@ void remove_arquivo(char *vppName, char *fileName) {
 	if(l_tamanho == 1) {
 		atualizaOffset(vpp, sizeof(int));
 		truncate(vppName, sizeof(int));
-		lista_destroi(lista);
-		fclose(vpp);
-		return;
-	}
-	// Ou se o arquivo removido é o último, é necessário apenas retirá-lo do fim.
-	else if(metadado_alvo->posicao == l_tamanho) {
-		lista_retira_fim(lista);
-		lista_escreve_arquivo(vpp, lista);
 		lista_destroi(lista);
 		fclose(vpp);
 		return;
@@ -82,8 +75,6 @@ void remove_arquivo(char *vppName, char *fileName) {
 		exit(1);
 	}
 
-	lista_destroi(lista);
-
 	// Nova posição do offset é o offset antigo-tamanho do alvo
 	atualizaOffset(vpp, getOffset(vpp) - file_size);
 
@@ -95,6 +86,10 @@ void remove_arquivo(char *vppName, char *fileName) {
 
 	// Transporta tudo que está após o final do alvo para a antiga localização do alvo
 	transportaBytes(vpp, vpp_adiantado);
+
+	// Exclui o lixo que estava após o shift de dados.
+	truncate(vppName, ftell(vpp));
+	lista_destroi(lista);
 
 	printf("Removido!\n");
 
@@ -137,7 +132,7 @@ void forja(char *vppName, char *fileName) {
 	}
 
 	// Captura os metadados do arquivo.
-	if((metadados = getMetaDados(info, fileName)) == NULL) {
+	if((metadados = getStats(info, fileName)) == NULL) {
 		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", fileName);
 		lista_destroi(lista);
 		fclose(file);
@@ -199,28 +194,50 @@ void forja(char *vppName, char *fileName) {
 	fclose(file);
 }
 
-void lista_arquivos(char *vppName) {
-	FILE* vpp;
+void lista_arquivos(char *vppName, char **fileNames) {
+	FILE *vpp;
 	lista_t *l;
+	metadado_t *metadados;
+
 	// Cria a lista.
 	if((l = lista_cria()) == NULL) {
 		fprintf(stderr, "Erro ao iniciar a lista.\n");
 		exit(1);
 	}
-
 	// Verifica-se primeiro se o destino está acessível
 	// caso esteja, o abre-se o arquivo no modo r+, economizando leitura dos
 	// arquivos já inseridos.
 	if(access(vppName, F_OK) == 0) {
-		if(!(vpp = fopen(vppName, "r+"))) {
+		if(!(vpp = fopen(vppName, "r"))) {
 			fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
 			exit(1);
 		}
 	} else {
 		fprintf(stderr, "Erro ao abrir o archiver \"%s\".\n", vppName);
 		exit(1);
-	
 	}
+
 	lista_insere_metadados(vpp, l);
-	lista_imprime(l);
+
+	// Se não há fileNames especificados, imprime todo o conteúdo do archiver.
+	if(!(*fileNames)) {
+		lista_imprime(l);
+		lista_destroi(l);
+		fclose(vpp);
+	}
+
+	// Se fileNames não é nula, então temos que verificar quais arquivos devem ser listados.
+	while(*fileNames) {
+		if(!(metadados = getMetadados(l, fileNames[0]))) {
+			fprintf(stderr, "Erro: Arquivo inexistente.\n");
+			lista_destroi(l);
+			fclose(vpp);
+			exit(1);
+		} else {
+			metadado_imprime(metadados);
+		}
+		fileNames++;
+	}
+	lista_destroi(l);
+	fclose(vpp);
 }

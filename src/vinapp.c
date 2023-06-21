@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "data.h"
-#include "insertion.h"
 #include "opcoes.h"
 
 void extrai(char *vpp, char *nomeArquivo) {
@@ -101,9 +100,13 @@ int main(int argc, char **argv) {
 			break;
 		case 'c':
 			vpp = optarg;
-
-			lista_arquivos(vpp);
-			
+			char **arquivos;
+			if(argc > 3) {
+				arquivos = argv + 3;
+				lista_arquivos(vpp, arquivos);
+			} else {
+				lista_arquivos(vpp, NULL);
+			}
 			break;
 		case '?':
 			printf("Opção inválida!\n");
