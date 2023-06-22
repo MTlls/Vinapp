@@ -20,4 +20,9 @@ void forja(char *vppName, char *fileName);
  */
 void lista_arquivos(char *vppName, char **fileNames);
 
+
+/**
+ * Imprime o manual de ajuda.
+*/
+void help();
 #endif

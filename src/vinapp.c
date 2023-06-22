@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 	if(argc == 1)
 		printf("Necessário mais argumentos!\n");
 
-	while((option = getopt(argc, argv, "i:x:r:c:")) != -1) {
+	while((option = getopt(argc, argv, "hi:x:r:c:")) != -1) {
 		switch(option) {
 		case 'i':
 			vpp = optarg;
@@ -108,6 +108,11 @@ int main(int argc, char **argv) {
 				lista_arquivos(vpp, NULL);
 			}
 			break;
+
+		case 'h':
+			help();
+			break;
+
 		case '?':
 			printf("Opção inválida!\n");
 			break;

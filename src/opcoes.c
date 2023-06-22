@@ -2,16 +2,25 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "data.h"
 #include "libLista.h"
 #include "saltos.h"
+#include "utils.h"
 
-/**
- * Função que remove o arquivo indicado.
- */
+#define RECUO 45
+#define TAMANHO_COLUNA 60
+#define TEXTO_INSERE "Insere/acrescenta um ou mais membros ao archive. Caso o membro já exista no archive, ele deve ser substituído. Novos membros são inseridos respeitando a ordem da linha de comando, ao final do archive."
+#define TEXTO_REMOVE "Remove os membros indicados de archive."
+#define TEXTO_MOVE "Move o membro indicado na linha de comando para imediatamente depois do membro target existente em archive. A movimentação deve ocorrer na seção de dados do archive"
+#define TEXTO_ATUALIZA "Mesmo comportamento da opção -i, mas a substituição de um membro existente ocorre APENAS caso o parâmetro seja mais recente que o arquivado."
+#define TEXTO_EXTRAI "Extrai os membros indicados de archive. Se os membros não forem indicados, todos devem ser extraídos. A extração consiste em ler o membro de archive e criar um arquivo correspondente, com conteúdo idêntico, em disco."
+#define TEXTO_LISTA "Lista o conteúdo de archive em ordem, incluindo as propriedades de cada membro."
+#define TEXTO_AJUDA "Imprime essa pequena mensagem de ajuda com as opções disponíveis e encerra."
+
 void remove_arquivo(char *vppName, char *fileName) {
 	// vpp_adiantado é o vpp, só que a frente do ponto de leitura do vpp.
 	// Será usado para prevenir fseeks seguidos.
@@ -204,9 +213,7 @@ void lista_arquivos(char *vppName, char **fileNames) {
 		fprintf(stderr, "Erro ao iniciar a lista.\n");
 		exit(1);
 	}
-	// Verifica-se primeiro se o destino está acessível
-	// caso esteja, o abre-se o arquivo no modo r+, economizando leitura dos
-	// arquivos já inseridos.
+	// Verifica-se primeiro se o destino está acessívels.
 	if(access(vppName, F_OK) == 0) {
 		if(!(vpp = fopen(vppName, "r"))) {
 			fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
@@ -220,10 +227,11 @@ void lista_arquivos(char *vppName, char **fileNames) {
 	lista_insere_metadados(vpp, l);
 
 	// Se não há fileNames especificados, imprime todo o conteúdo do archiver.
-	if(!(*fileNames)) {
+	if(!(fileNames)) {
 		lista_imprime(l);
 		lista_destroi(l);
 		fclose(vpp);
+		return;
 	}
 
 	// Se fileNames não é nula, então temos que verificar quais arquivos devem ser listados.
@@ -240,4 +248,30 @@ void lista_arquivos(char *vppName, char **fileNames) {
 	}
 	lista_destroi(l);
 	fclose(vpp);
+}
+
+/**
+ * Imprime o manual de ajuda.
+ */
+void help() {
+	printf("%-*s", RECUO, "-i [ARCHIVER] [ARQUIVO1, ARQUIVO2, ...]");
+	imprime_coluna(RECUO, TAMANHO_COLUNA, TEXTO_INSERE);
+
+	printf("%-*s", RECUO, "-r [ARCHIVER] [ARQUIVO1, ARQUIVO2, ...]");
+	imprime_coluna(RECUO, TAMANHO_COLUNA, TEXTO_REMOVE);
+
+	printf("%-*s", RECUO, "-a [ARCHIVER] [ARQUIVO1, ARQUIVO2, ...]");
+	imprime_coluna(RECUO, TAMANHO_COLUNA, TEXTO_ATUALIZA);
+
+	printf("%-*s", RECUO, "-x [ARCHIVER] [ARQUIVO1, ARQUIVO2, ...]");
+	imprime_coluna(RECUO, TAMANHO_COLUNA, TEXTO_EXTRAI);
+
+	printf("%-*s", RECUO, "-m [ARCHIVER] [ARQUIVO1, ARQUIVO2]");
+	imprime_coluna(RECUO, TAMANHO_COLUNA, TEXTO_MOVE);
+
+	printf("%-*s", RECUO, "-c [ARCHIVER] [ARQUIVO1, ARQUIVO2, ...]");
+	imprime_coluna(RECUO, TAMANHO_COLUNA, TEXTO_LISTA);
+
+	printf("%-*s", RECUO, "-h");
+	imprime_coluna(RECUO, TAMANHO_COLUNA, TEXTO_AJUDA);
 }
