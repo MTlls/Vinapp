@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "utils.h"
+#include "libUtils.h"
 
 /**
  * Função que formata os uma string como um caminho relativo.

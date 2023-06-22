@@ -9,7 +9,7 @@
 #include "data.h"
 #include "libLista.h"
 #include "saltos.h"
-#include "utils.h"
+#include "libUtils.h"
 
 #define RECUO 45
 #define TAMANHO_COLUNA 60

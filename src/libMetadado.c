@@ -8,7 +8,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "utils.h"
+#include "libUtils.h"
 /**
  * Essa função captura a struct stat recebida do arquivo
  * e copia alguns metadados dentro da struct metadado_t.
