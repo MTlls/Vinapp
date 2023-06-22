@@ -9,6 +9,7 @@
 #include "libLista.h"
 #include "libMetadado.h"
 #include "saltos.h"
+#include "utils.h"
 
 #define kB 1024
 #define BLOCO_BYTE 341

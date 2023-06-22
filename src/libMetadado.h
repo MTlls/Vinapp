@@ -47,22 +47,6 @@ void desaloca_metadado(metadado_t *metadado);
 void metadado_imprime(metadado_t *metadado);
 
 /**
- * Função que formata os uma string como um caminho relativo.
- * Retorna a string formatada.
- */
-void formataCaminho(char *dest, char *src);
-
-/**
- * Função que apenas pega a ultima string após o '/'.
- */
-void formataNome(char *dest, char *src);
-
-/**
- * Função que retira os espaços da string.
- */
-void retiraEspacos(char *str);
-
-/**
  * Lê o uid e retorna o username respectivo.
 */
 char *getUsername(unsigned int uid);

@@ -8,6 +8,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "utils.h"
 /**
  * Essa função captura a struct stat recebida do arquivo
  * e copia alguns metadados dentro da struct metadado_t.
@@ -39,7 +40,7 @@ metadado_t *getStats(struct stat status, char *caminhoArquivo) {
 	data_temp[16] = '\0';
 	strncpy(metadados->data_modificacao, data_temp, 17);
 
-	if(!(metadados->data_modificacao)){
+	if(!(metadados->data_modificacao)) {
 		return NULL;
 	}
 
@@ -48,8 +49,8 @@ metadado_t *getStats(struct stat status, char *caminhoArquivo) {
 	formataCaminho(metadados->caminho, caminhoArquivo);
 
 	// Inserido o tipo e modo do arquivo, será usado depois para recriação do mesmo.
-	metadados->mode = status.st_mode & 0777; // Está em octal!
-	metadados->uid = status.st_uid  ;
+	metadados->mode = status.st_mode & 0777;  // Está em octal!
+	metadados->uid = status.st_uid;
 	metadados->tamanho = status.st_size;
 
 	return metadados;
@@ -88,56 +89,12 @@ void desaloca_metadado(metadado_t *metadado) {
  */
 void metadado_imprime(metadado_t *metadado) {
 	imprimePermissoes(metadado->mode);
-	printf("%s %7d %s %s", getUsername(metadado->uid), metadado->tamanho, metadado->data_modificacao, metadado->caminho);
+	printf(" %s %7d %s %s", getUsername(metadado->uid), metadado->tamanho, metadado->data_modificacao, metadado->caminho);
 	printf("\n");
 }
 
 char *getUsername(unsigned int uid) {
 	return getpwuid(uid)->pw_name;
-}
-
-/**
- * Função que formata os uma string como um caminho relativo.
- */
-void formataCaminho(char *dest, char *src) {
-	// Independente de ser um caminho relativo ou não, é necessário com que o metadado de localização seja relativo ao diretório do archive. Será inserido um "./" no começo da string de localização.
-	dest[0] = '.';
-
-	// Verifica se começa com '/' ou não
-	if(src[0] != '/')
-		dest[1] = '/';
-
-	// Necessário limitar a string para o strcat.
-	dest[2] = '\0';
-	// concatena ./ + str
-	strcat(dest, src);
-}
-
-/**
- * Função que apenas pega a ultima string após o '/'.
- */
-void formataNome(char *dest, char *src) {
-	int i;
-	// Aponta para o primeiro char depois de '/'
-	char *ponteiroNome;
-	for(i = strlen(src); i >= 0 && src[i] != '/'; i--)
-		ponteiroNome = src + i;
-
-	strcpy(dest, ponteiroNome);
-	// Autoexplicativo.
-	retiraEspacos(dest);
-}
-
-/**
- * Função que retira os espaços da sting.
- */
-void retiraEspacos(char *str) {
-	int aux = 0, tam = strlen(str), i;
-	for(i = 0; i < tam; i++) {
-		if(str[i] != ' ')
-			str[aux++] = str[i];
-	}
-	str[aux] = '\0';
 }
 
 void leString(FILE *file, char **str) {
