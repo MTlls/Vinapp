@@ -118,7 +118,7 @@ void remove_arquivo(char *vppName, char *fileName) {
 /**
  * Função temporária, forja um .vpp
  */
-void forja(char *vppName, char *fileName) {
+void insercao(char *vppName, char *fileName, tipo_insercao_t modo) {
 	FILE *vpp, *file, *vpp_ajudante;
 	lista_t *lista;
 	metadado_t *metadados;
@@ -127,7 +127,7 @@ void forja(char *vppName, char *fileName) {
 	char caminho_format[4096];
 	nodo_l_t *antigo;
 
-	if(stat(fileName, &info) == 0) {
+	if(stat(fileName, &info)) {
 		fprintf(stderr, "Erro ao obter o status do arquivo \"%s\".\n", fileName);
 		exit(1);
 	}
@@ -135,13 +135,11 @@ void forja(char *vppName, char *fileName) {
 
 	if(!(file = fopen(fileName, "r"))) {
 		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", fileName);
-		lista_destroi(lista);
 		exit(1);
 	}
 	// Captura os metadados do arquivo.
 	if((metadados = getStats(info, fileName)) == NULL) {
-		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", fileName);
-		lista_destroi(lista);
+		fprintf(stderr, "Erro ao gerar os metadados do arquivo \"%s\".\n", fileName);
 		fclose(file);
 		exit(1);
 	}
@@ -171,13 +169,24 @@ void forja(char *vppName, char *fileName) {
 		if(lista_tamanho(lista) > 0) {
 			// Formata-se o caminho para verificar se ele já existe no archiver.
 			formataCaminho(caminho_format, fileName);
-			if(lista_pertence(lista, caminho_format) == 1) {
+			if(lista_pertence(lista, caminho_format)) {
+				// Para alterar as propriedades da lista e o próprio nodo.
+				antigo = getNodo(lista, caminho_format);
+				// Opcao -a, verificacao se o arquivo é mais atual ou não.
+				if(modo == OPTION_A) {
+					// Se não pode atualizar, apresenta erro e sai.
+					if(!podeAtualizar(antigo->elemento, metadados)) {
+						fprintf(stderr,
+						        "Erro: Não foi possível atualizar/inserir o arquivo. \"%s\" não é mais recente que o \"%s\" dentro do archiver.\n",
+						        fileName, antigo->elemento->caminho);
+						exit(1);
+					}
+				}
+
 				if(!(vpp_ajudante = fopen(vppName, "r+"))) {
 					fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
 					exit(1);
 				}
-				// Para alterar as propriedades da lista e o próprio nodo.
-				antigo = getNodo(lista, caminho_format);
 				// Substituicao do arquivo
 				substitui(vpp, vpp_ajudante, file, antigo, metadados);
 				// Truncado no começo da area diretório.
@@ -187,8 +196,8 @@ void forja(char *vppName, char *fileName) {
 
 				lista_destroi(lista);
 				desaloca_metadado(metadados);
-				fclose(vpp);
 				fclose(vpp_ajudante);
+				fclose(vpp);
 				fclose(file);
 				return;
 			}
@@ -307,8 +316,8 @@ void help() {
 /**
  * Função que substitui o arquivo antigo pelo novo de mesmo nome.
  */
-void substitui(FILE *leitor, FILE *escritor, FILE *file, nodo_l_t *antigo, metadado_t *novo) {
-	int offset = getOffset(leitor),
+void substitui(FILE *vpp, FILE *auxiliar, FILE *file, nodo_l_t *antigo, metadado_t *novo) {
+	int offset = getOffset(vpp),
 	    new_tam = novo->tamanho,
 	    old_tam = antigo->elemento->tamanho,
 	    old_loc = antigo->elemento->localizacao,
@@ -329,16 +338,12 @@ void substitui(FILE *leitor, FILE *escritor, FILE *file, nodo_l_t *antigo, metad
 		bloco = offset - prox_loc;
 
 		// Ponto de escrita.
-		fseek(escritor, offset + diferenca - 1, SEEK_SET);
+		fseek(auxiliar, offset + diferenca - 1, SEEK_SET);
 		// Ponto de leitura.
-		fseek(leitor, offset - 1, SEEK_SET);
+		fseek(vpp, offset - 1, SEEK_SET);
 
 		// Realizado o shift
-		shift_direita(escritor, leitor, bloco);
-
-		// Escrita do arquivo novo.
-		fseek(escritor, old_loc, SEEK_SET);
-		transporta_bytes(escritor, file);
+		shift_direita(auxiliar, vpp, bloco);
 
 		// Substitui o tamanho, uid, data de modificao e permissoes.
 		substitui_metadados(antigo->elemento, novo);
@@ -350,28 +355,26 @@ void substitui(FILE *leitor, FILE *escritor, FILE *file, nodo_l_t *antigo, metad
 		diferenca = -diferenca;
 
 		// Final dos arquivos é os finais + 1.
-		fseek(escritor, new_final + 1, SEEK_SET);
-		fseek(leitor, old_final + 1, SEEK_SET);
-		transporta_bytes(escritor, leitor);
+		fseek(auxiliar, new_final + 1, SEEK_SET);
+		fseek(vpp, old_final + 1, SEEK_SET);
+		transporta_bytes(vpp, vpp);
 
 		// Substitui o tamanho, uid, data de modificao e permissoes.
 		substitui_metadados(antigo->elemento, novo);
 		lista_altera_dados(antigo, DIMINUI, diferenca);
 
-		// Escreve o arquivo
-		fseek(escritor, old_loc, SEEK_SET);
-		transporta_bytes(escritor, file);
-
 		// Soh para a diferença voltar ao negativo :)
 		diferenca = -diferenca;
 	} else {
 		printf("Arquivo tem o mesmo tamanho que o novo.\n");
-		fseek(escritor, old_loc, SEEK_SET);
-
-		transporta_bytes(escritor, file);
+		fseek(vpp, old_loc, SEEK_SET);
 	}
+
+	// Escreve o arquivo
+	fseek(vpp, old_loc, SEEK_SET);
+	transporta_bytes(vpp, file);
 	// Atualiza o novo offset, vai depender da diferença entre os dois arquivos.
-	atualizaOffset(escritor, offset + diferenca);
+	atualizaOffset(vpp, (offset + diferenca));
 }
 
 void offset(char *vppName) {

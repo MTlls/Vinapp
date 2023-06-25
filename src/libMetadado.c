@@ -158,3 +158,18 @@ void substitui_metadados(metadado_t *a, metadado_t *b){
 		a->permissoes = b->permissoes;
 		a->uid = b->uid;
 }
+
+int podeAtualizar(metadado_t *inserido, metadado_t *candidato) {
+	char *recente = mais_recente(inserido->data_modificacao, candidato->data_modificacao);
+	// Verifica se as datas sao a mesma.
+	if(strcmp(inserido->data_modificacao, candidato->data_modificacao) == 0){
+		return 0;
+	}
+
+	// Verifica se o mais recente é o candidato.
+	if(strcmp(recente, candidato->data_modificacao) == 0){
+		return 1;
+	}
+	// Caso não seja, não é possível atualizar.
+	return 0;
+}

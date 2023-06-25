@@ -76,4 +76,11 @@ int le_metadado(FILE *file, metadado_t *metadado);
  */
 void substitui_metadados(metadado_t *a, metadado_t *b);
 
+
+/**
+ * Função que verifica se pode atualizar o archiver com o "candidato" ou não.
+ * "inserido" é o arquivo que já está presente no archiver.
+ * Retorna 1 se é possível, 0 se não.
+*/
+int podeAtualizar(metadado_t *inserido, metadado_t *candidato);
 #endif

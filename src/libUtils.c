@@ -1,8 +1,8 @@
+#include "libUtils.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "libUtils.h"
 
 /**
  * Função que formata os uma string como um caminho relativo.
@@ -63,10 +63,25 @@ void imprime_coluna(int recuo, int tamanho_coluna, char *texto) {
 			}
 			// Quebra a linha e empurra o cursor da saída para escrever logo abaixo
 			putchar('\n');
-			printf("%*c", recuo-1, ' ');
+			printf("%*c", recuo - 1, ' ');
 		}
 		putchar(texto[i - 1]);
 	}
 	putchar('\n');
 	putchar('\n');
+}
+
+char *mais_recente(char *data_a, char *data_b) {
+	// Primeiro é necessário comparar os dois anos
+	for(int i = 0; i < strlen(data_a); i++) {
+		// Se algum numero de "a" for maior que o respectivo numero de "b",
+		// saberemos que a é a data mais recente.
+		if(data_a[i] > data_b[i]) {
+			return data_a;
+		} else if(data_b[i] > data_a[i]) {
+				return data_b;
+			}
+	}
+
+	return NULL;
 }

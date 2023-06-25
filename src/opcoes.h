@@ -5,6 +5,13 @@
 #include <stdlib.h>
 
 #include "libLista.h"
+
+enum tipo_insercao{
+    OPTION_I, // Opcao -a, insere ou atualiza com base na data de modificacao.
+    OPTION_A  // Opcao -i, insere ou atualiza independente de data.
+};
+typedef enum tipo_insercao tipo_insercao_t;
+
 /**
  * Remove o arquivo do archiver
 */
@@ -14,7 +21,7 @@ void remove_arquivo(char *vpp, char* fileName);
 /**
  * Função temporária, forja um .vpp
  */
-void forja(char *vppName, char *fileName);
+void insercao(char *vppName, char *fileName, tipo_insercao_t modo);
 
 /**
  * Função que lista todos os arquivos presentes no archiver.

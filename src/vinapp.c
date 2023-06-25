@@ -6,27 +6,25 @@
 #include "opcoes.h"
 
 int main(int argc, char **argv) {
-	// char *destinoNome;
-	char *vpp;
 	int i, option;
 
 	// Testa se não há mais opções/argumentos
 	if(argc == 1)
 		printf("Necessário mais argumentos!\n");
 
-	while((option = getopt(argc, argv, "hi:x:r:c:")) != -1) {
+	while((option = getopt(argc, argv, "hi:x:r:c:a:")) != -1) {
 		switch(option) {
 		case 'i':
 			// Captura o nome dos arquivos e para cada um chama a função
 			for(i = optind; i < argc; i++) {
-				forja(optarg, argv[i]);
+				insercao(optarg, argv[i], OPTION_I);
 			}
 
 			break;
 		case 'x':
 			// Captura o nome dos arquivos e para cada um chama a função
 			for(i = optind; i < argc; i++)
-				extrai(optarg, argv[i]);
+				// extrai(optarg, argv[i]);
 
 			break;
 		case 'r':
@@ -48,6 +46,12 @@ int main(int argc, char **argv) {
 		case 'h':
 			// Lista o help.
 			help();
+			break;
+		case 'a':
+			// Captura o nome dos arquivos e para cada um chama a função
+			for(i = optind; i < argc; i++) {
+				insercao(optarg, argv[i], OPTION_A);
+			}
 			break;
 		case '?':
 			printf("Opção inválida! Digite \"./vina++ -h\" para ver as opções.\n");
