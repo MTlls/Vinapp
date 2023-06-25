@@ -37,8 +37,8 @@ void atualizaOffset(FILE *file, int offset) {
 int getOffset(FILE *file) {
 	int offset = 0;
 	rewind(file);
-	
-	if(fread(&offset, sizeof(int), 1, file) == 0){
+
+	if(fread(&offset, sizeof(int), 1, file) == 0) {
 		fprintf(stderr, "Erro ao ler o offset.\n");
 		exit(1);
 	}

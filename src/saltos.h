@@ -21,7 +21,6 @@ void atualizaDir(FILE *vpp, lista_t *l);
  */
 void atualizaOffset(FILE *vpp, int offset);
 
-
 /**
  * Função que retorna o offset (area onde incia o diretorio).
  */

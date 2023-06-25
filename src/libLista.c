@@ -187,21 +187,17 @@ int lista_pertence(lista_t *l, char *nome) {
 
 	NodoAtual = l->ini;
 
-	if(lista_tamanho(l) == 1) {
-		if(strcmp(NodoAtual->elemento->nome, nome) == 0) {
-			return 1;
-		}
-	}
-
 	while(NodoAtual->prox != NULL) {
 		/* Se achar o elemento, sai do laço e retorna 1 */
-		if(strcmp(NodoAtual->elemento->nome, nome) == 0) {
+		if(strcmp(NodoAtual->elemento->nome, nome) == 0 ||
+		   strcmp(NodoAtual->elemento->caminho, nome) == 0) {
 			return 1;
 		}
 		NodoAtual = NodoAtual->prox;
 	}
 
-	if(strcmp(NodoAtual->elemento->nome, nome) == 0) {
+	if(strcmp(NodoAtual->elemento->nome, nome) == 0 ||
+	   strcmp(NodoAtual->elemento->caminho, nome) == 0) {
 		return 1;
 	}
 
@@ -329,17 +325,33 @@ void lista_escreve_arquivo(FILE *file, lista_t *l) {
  * Função que retrocede os dados necessários dos metadados posteriores a ele.
  * Dados necessários = posicao e localizacao.
  * */
-void lista_retrocede_dados(nodo_l_t *nodo) {
+void lista_altera_dados(nodo_l_t *nodo, altera_lista_t modo, int tamanho) {
 	nodo_l_t *NodoAtual;
-	unsigned int bytes;
-	bytes = nodo->elemento->tamanho;
 	NodoAtual = nodo->prox;
 
-	// Avança-se e retrocede todos as posições.
-	while(NodoAtual != NULL) {
-		NodoAtual->elemento->posicao += -1;
-		NodoAtual->elemento->localizacao += -bytes;
-		NodoAtual = NodoAtual->prox;
+	switch(modo) {
+	case DIMINUI_RETROCEDE:
+		// Avança-se todas as posições e retrocede todos as localizacoes.
+		while(NodoAtual != NULL) {
+			NodoAtual->elemento->posicao -= 1;
+			NodoAtual->elemento->localizacao -= tamanho;
+			NodoAtual = NodoAtual->prox;
+		}
+		break;
+	case AUMENTA:
+		// Avança todas as localizacoes.
+		while(NodoAtual != NULL) {
+			NodoAtual->elemento->localizacao += tamanho;
+			NodoAtual = NodoAtual->prox;
+		}
+		break;
+	case DIMINUI:
+		// Retrocede todas as localizacoes.
+		while(NodoAtual != NULL) {
+			NodoAtual->elemento->localizacao -= tamanho;
+			NodoAtual = NodoAtual->prox;
+		}
+		break;
 	}
 }
 
@@ -351,13 +363,15 @@ nodo_l_t *getNodo(lista_t *l, char *nome) {
 	NodoAtual = l->ini;
 
 	while(NodoAtual->prox != NULL) {
-		if(strcmp(NodoAtual->elemento->nome, nome) == 0) {
+		if(strcmp(NodoAtual->elemento->nome, nome) == 0 ||
+		   strcmp(NodoAtual->elemento->caminho, nome) == 0) {
 			return NodoAtual;
 		}
 		NodoAtual = NodoAtual->prox;
 	}
 	// Último nodo
-	if(strcmp(NodoAtual->elemento->nome, nome) == 0) {
+	if(strcmp(NodoAtual->elemento->nome, nome) == 0 ||
+	   strcmp(NodoAtual->elemento->caminho, nome) == 0) {
 		return NodoAtual;
 	}
 	return NULL;
@@ -370,9 +384,9 @@ metadado_t *getMetadados(lista_t *l, char *nome) {
 	nodo_l_t *nodo;
 	nodo = l->ini;
 
-	if(!(nodo = getNodo(l, nome))){
+	if(!(nodo = getNodo(l, nome))) {
 		return NULL;
 	}
-	
+
 	return nodo->elemento;
 }

@@ -1,15 +1,15 @@
 #ifndef _LIBMETADADO_H_
 #define _LIBMETADADO_H_
 
-#include <sys/stat.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 /*Funções que manipulam as structs usadas para montar uma lista básica*/
 struct metadado {
 	unsigned int uid;           // User ID
 	unsigned int localizacao;   // local do arquivo dentro do archiver
 	unsigned int tamanho;       // Tamanho do arquivo.
-	unsigned int mode;          // modo do arquivo
+	unsigned int permissoes;    // permissoes do arquivo
 	unsigned short posicao;     // Posição em que o arquivo se encontra, 0 a no máximo 65536.
 	char data_modificacao[17];  // Data em que o arquivo foi modificado. Armazenado em string para menor guardar menor quantidade de bytes.
 	char *nome;                 // Nome (sem espaços), máximo 80 caracteres.
@@ -48,27 +48,32 @@ void metadado_imprime(metadado_t *metadado);
 
 /**
  * Lê o uid e retorna o username respectivo.
-*/
+ */
 char *getUsername(unsigned int uid);
 
 /**
  * Função que lê uma string até o byte nulo.
  * Aloca espaço suficiente para a string e a retorna dentro do parâmetro incluindo o byte nulo '\0'.
  * Em caso de erro a string retornará nula.
-*/
+ */
 void leString(FILE *file, char **str);
 
 /**
  * Escreve o metadado no arquivo nesta determinada sequência:
  * localicação, tamanho, modo, posição, data_modificacao, nome, caminho.
-*/
+ */
 void escreve_metadado(FILE *file, metadado_t *metadado);
 
 /**
  * Le o metadado no arquivo nesta determinada sequência:
  * localicação, tamanho, modo, posição, data_modificacao, nome, caminho.
  * Retorna 0 se não conseguir ler nada no primeiro membro. 1 caso contraŕio.
-*/
+ */
 int le_metadado(FILE *file, metadado_t *metadado);
+
+/**
+ * Função que substitui os metadados do arquivo a pelo novo arquivo b. Mantém o nome, posicao, caminho e localizacao.
+ */
+void substitui_metadados(metadado_t *a, metadado_t *b);
 
 #endif

@@ -49,7 +49,7 @@ metadado_t *getStats(struct stat status, char *caminhoArquivo) {
 	formataCaminho(metadados->caminho, caminhoArquivo);
 
 	// Inserido o tipo e modo do arquivo, será usado depois para recriação do mesmo.
-	metadados->mode = status.st_mode & 0777;  // Está em octal!
+	metadados->permissoes = status.st_mode & 0777;  // Está em octal!
 	metadados->uid = status.st_uid;
 	metadados->tamanho = status.st_size;
 
@@ -88,8 +88,10 @@ void desaloca_metadado(metadado_t *metadado) {
  * permissoes uid tamanho data caminho posicao
  */
 void metadado_imprime(metadado_t *metadado) {
-	imprimePermissoes(metadado->mode);
-	printf(" %s %7d %s %s", getUsername(metadado->uid), metadado->tamanho, metadado->data_modificacao, metadado->caminho);
+	imprimePermissoes(metadado->permissoes);
+	printf(" %s %7d %s %s\n", getUsername(metadado->uid), metadado->tamanho, metadado->data_modificacao, metadado->caminho);
+
+	printf("localizacao: %d\n nome: %s\n posicao: %d", metadado->localizacao, metadado->nome, metadado->posicao);
 	printf("\n");
 }
 
@@ -122,7 +124,7 @@ void escreve_metadado(FILE *file, metadado_t *metadado) {
 	fwrite(&metadado->uid, 1, sizeof(unsigned int), file);
 	fwrite(&metadado->localizacao, 1, sizeof(unsigned int), file);
 	fwrite(&metadado->tamanho, 1, sizeof(unsigned int), file);
-	fwrite(&metadado->mode, 1, sizeof(unsigned int), file);
+	fwrite(&metadado->permissoes, 1, sizeof(unsigned int), file);
 	fwrite(&metadado->posicao, 1, sizeof(unsigned short), file);
 	// data_modificacao[16], por isso o 16.
 	fwrite(metadado->data_modificacao, 1, sizeof(char) * 16, file);
@@ -136,7 +138,7 @@ int le_metadado(FILE *file, metadado_t *metadados) {
 		return 0;
 	fread(&metadados->localizacao, 1, sizeof(unsigned int), file);
 	fread(&metadados->tamanho, 1, sizeof(unsigned int), file);
-	fread(&metadados->mode, 1, sizeof(unsigned int), file);
+	fread(&metadados->permissoes, 1, sizeof(unsigned int), file);
 	fread(&metadados->posicao, 1, sizeof(unsigned short), file);
 	fread(metadados->data_modificacao, 1, sizeof(char) * 16, file);
 	leString(file, &metadados->nome);
@@ -148,4 +150,11 @@ int le_metadado(FILE *file, metadado_t *metadados) {
 	}
 
 	return 1;
+}
+
+void substitui_metadados(metadado_t *a, metadado_t *b){
+		strcpy(a->data_modificacao, b->data_modificacao);
+		a->tamanho = b->tamanho;
+		a->permissoes = b->permissoes;
+		a->uid = b->uid;
 }

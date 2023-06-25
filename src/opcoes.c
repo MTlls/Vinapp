@@ -8,8 +8,9 @@
 
 #include "data.h"
 #include "libLista.h"
-#include "saltos.h"
 #include "libUtils.h"
+#include "opcoes.h"
+#include "saltos.h"
 
 #define RECUO 45
 #define TAMANHO_COLUNA 60
@@ -67,7 +68,7 @@ void remove_arquivo(char *vppName, char *fileName) {
 	fim = metadado_alvo->localizacao + metadado_alvo->tamanho;
 
 	// Retrocede a posicao de todos os metadados posteriores.
-	lista_retrocede_dados(nodo_alvo);
+	lista_altera_dados(nodo_alvo, DIMINUI_RETROCEDE, metadado_alvo->tamanho);
 	// Retira o metadado alvo.
 	lista_retira_elemento(lista, metadado_alvo);
 	// Escreve a lista no arquivo.
@@ -94,7 +95,7 @@ void remove_arquivo(char *vppName, char *fileName) {
 	fseek(vpp_adiantado, fim, SEEK_SET);
 
 	// Transporta tudo que está após o final do alvo para a antiga localização do alvo
-	transportaBytes(vpp, vpp_adiantado);
+	transporta_bytes(vpp, vpp_adiantado);
 
 	// Exclui o lixo que estava após o shift de dados.
 	truncate(vppName, ftell(vpp));
@@ -118,33 +119,36 @@ void remove_arquivo(char *vppName, char *fileName) {
  * Função temporária, forja um .vpp
  */
 void forja(char *vppName, char *fileName) {
-	FILE *vpp, *file;
+	FILE *vpp, *file, *vpp_ajudante;
 	lista_t *lista;
 	metadado_t *metadados;
 	int offset = 0, size = 0;
 	struct stat info;
+	char caminho_format[4096];
+	nodo_l_t *antigo;
 
-	stat(fileName, &info);
-
-	size = info.st_size;
-
-	// Cria a lista.
-	if((lista = lista_cria()) == NULL) {
-		fprintf(stderr, "Erro ao iniciar a lista.\n");
+	if(stat(fileName, &info) == 0) {
+		fprintf(stderr, "Erro ao obter o status do arquivo \"%s\".\n", fileName);
 		exit(1);
 	}
+	size = info.st_size;
 
 	if(!(file = fopen(fileName, "r"))) {
 		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", fileName);
 		lista_destroi(lista);
 		exit(1);
 	}
-
 	// Captura os metadados do arquivo.
 	if((metadados = getStats(info, fileName)) == NULL) {
 		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", fileName);
 		lista_destroi(lista);
 		fclose(file);
+		exit(1);
+	}
+
+	// Cria a lista.
+	if((lista = lista_cria()) == NULL) {
+		fprintf(stderr, "Erro ao iniciar a lista.\n");
 		exit(1);
 	}
 
@@ -160,13 +164,37 @@ void forja(char *vppName, char *fileName) {
 		// Captura a posição que começa o diretório
 		fread(&offset, sizeof(int), 1, vpp);
 
-		metadados->localizacao = offset;
-
-		// Salta para a área do diretório.
-		seekDiretorio(vpp);
-
 		// Insere na lista todos os metadados do diretório para obter o seu tamanho, que é a posição do novo arquivo.
 		lista_insere_metadados(vpp, lista);
+
+		// Se a lista possui nodos, já é necessário verificar se ele já está dentro do archiver.
+		if(lista_tamanho(lista) > 0) {
+			// Formata-se o caminho para verificar se ele já existe no archiver.
+			formataCaminho(caminho_format, fileName);
+			if(lista_pertence(lista, caminho_format) == 1) {
+				if(!(vpp_ajudante = fopen(vppName, "r+"))) {
+					fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
+					exit(1);
+				}
+				// Para alterar as propriedades da lista e o próprio nodo.
+				antigo = getNodo(lista, caminho_format);
+				// Substituicao do arquivo
+				substitui(vpp, vpp_ajudante, file, antigo, metadados);
+				// Truncado no começo da area diretório.
+				truncate(vppName, getOffset(vpp));
+				// Atualizado o diretorio.
+				atualizaDir(vpp, lista);
+
+				lista_destroi(lista);
+				desaloca_metadado(metadados);
+				fclose(vpp);
+				fclose(vpp_ajudante);
+				fclose(file);
+				return;
+			}
+		}
+
+		metadados->localizacao = offset;
 
 		metadados->posicao = (lista_tamanho(lista) + 1);
 
@@ -192,7 +220,7 @@ void forja(char *vppName, char *fileName) {
 	lista_insere_fim(lista, metadados);
 
 	// Escreve os dados.
-	transportaBytes(vpp, file);
+	transporta_bytes(vpp, file);
 
 	// Atualiza o necessário sobre o diretório.
 	atualizaDir(vpp, lista);
@@ -208,11 +236,6 @@ void lista_arquivos(char *vppName, char **fileNames) {
 	lista_t *l;
 	metadado_t *metadados;
 
-	// Cria a lista.
-	if((l = lista_cria()) == NULL) {
-		fprintf(stderr, "Erro ao iniciar a lista.\n");
-		exit(1);
-	}
 	// Verifica-se primeiro se o destino está acessívels.
 	if(access(vppName, F_OK) == 0) {
 		if(!(vpp = fopen(vppName, "r"))) {
@@ -221,6 +244,11 @@ void lista_arquivos(char *vppName, char **fileNames) {
 		}
 	} else {
 		fprintf(stderr, "Erro ao abrir o archiver \"%s\".\n", vppName);
+		exit(1);
+	}
+	// Cria a lista.
+	if((l = lista_cria()) == NULL) {
+		fprintf(stderr, "Erro ao iniciar a lista.\n");
 		exit(1);
 	}
 
@@ -274,4 +302,83 @@ void help() {
 
 	printf("%-*s", RECUO, "-h");
 	imprime_coluna(RECUO, TAMANHO_COLUNA, TEXTO_AJUDA);
+}
+
+/**
+ * Função que substitui o arquivo antigo pelo novo de mesmo nome.
+ */
+void substitui(FILE *leitor, FILE *escritor, FILE *file, nodo_l_t *antigo, metadado_t *novo) {
+	int offset = getOffset(leitor),
+	    new_tam = novo->tamanho,
+	    old_tam = antigo->elemento->tamanho,
+	    old_loc = antigo->elemento->localizacao,
+	    new_final = old_loc + new_tam - 1,
+	    old_final = old_loc + old_tam - 1,
+	    prox_loc = old_final + 1;
+
+	int diferenca, bloco;
+
+	// Caso o tamanho do novo arquivo seja maior, é só inverter o sinal.
+	diferenca = (new_tam - old_tam);
+
+	// Caso seja inserido arquivo maior que o antigo.
+	if(new_tam > old_tam) {
+		printf("Arquivo antigo é menor que o novo!\n");
+
+		// Será shiftado todos os arquivos entre o diretorio e o arquivo substituido.
+		bloco = offset - prox_loc;
+
+		// Ponto de escrita.
+		fseek(escritor, offset + diferenca - 1, SEEK_SET);
+		// Ponto de leitura.
+		fseek(leitor, offset - 1, SEEK_SET);
+
+		// Realizado o shift
+		shift_direita(escritor, leitor, bloco);
+
+		// Escrita do arquivo novo.
+		fseek(escritor, old_loc, SEEK_SET);
+		transporta_bytes(escritor, file);
+
+		// Substitui o tamanho, uid, data de modificao e permissoes.
+		substitui_metadados(antigo->elemento, novo);
+		lista_altera_dados(antigo, AUMENTA, diferenca);
+	}
+	// Caso contrário.
+	else if(new_tam < old_tam) {
+		printf("Arquivo novo menor que o antigo.\n");
+		diferenca = -diferenca;
+
+		// Final dos arquivos é os finais + 1.
+		fseek(escritor, new_final + 1, SEEK_SET);
+		fseek(leitor, old_final + 1, SEEK_SET);
+		transporta_bytes(escritor, leitor);
+
+		// Substitui o tamanho, uid, data de modificao e permissoes.
+		substitui_metadados(antigo->elemento, novo);
+		lista_altera_dados(antigo, DIMINUI, diferenca);
+
+		// Escreve o arquivo
+		fseek(escritor, old_loc, SEEK_SET);
+		transporta_bytes(escritor, file);
+
+		// Soh para a diferença voltar ao negativo :)
+		diferenca = -diferenca;
+	} else {
+		printf("Arquivo tem o mesmo tamanho que o novo.\n");
+		fseek(escritor, old_loc, SEEK_SET);
+
+		transporta_bytes(escritor, file);
+	}
+	// Atualiza o novo offset, vai depender da diferença entre os dois arquivos.
+	atualizaOffset(escritor, offset + diferenca);
+}
+
+void offset(char *vppName) {
+	FILE *vpp;
+	if(!(vpp = fopen(vppName, "r"))) {
+		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
+		exit(1);
+	}
+	printf("offset:%d\n", getOffset(vpp));
 }

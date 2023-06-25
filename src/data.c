@@ -19,15 +19,14 @@
  * Essa função Lê e escreve a partir da posição das streams entregues como argumento.
  * Transporta 1kB de cada vez.
  */
-void transportaBytes(FILE *destino, FILE *origem) {
+void transporta_bytes(FILE *destino, FILE *origem) {
 	char buffer[kB];
-	int bytesLidos = 0, i = 0;
+	int bytesLidos = 0;
 
 	while((bytesLidos = fread(buffer, 1, kB, origem)) == kB) {
 		fwrite(buffer, 1, kB, destino);
-		i++;
 	}
-	bytesLidos = fwrite(buffer, 1, bytesLidos, destino);
+	fwrite(buffer, 1, bytesLidos, destino);
 }
 
 /**
@@ -65,7 +64,7 @@ void insere_atualiza_diretorio(FILE *vpp, FILE *file, lista_t *l) {
 	seekDiretorio(vpp);
 
 	// Escreve os dados.
-	transportaBytes(vpp, file);
+	transporta_bytes(vpp, file);
 
 	// Atualiza o necessário sobre o diretório.
 	atualizaDir(vpp, l);
@@ -88,7 +87,7 @@ int fileExists(FILE *vpp, char *fileName, lista_t *l, nodo_l_t **info) {
 	if(lista_pertence(l, nome) == 0) {
 		return 0;
 	};
- 	// Alterado o ponteiro do nodo, agora apontando o metadado que pertence.
+	// Alterado o ponteiro do nodo, agora apontando o metadado que pertence.
 	*info = getNodo(l, nome);
 	return 1;
 }
@@ -129,4 +128,53 @@ void imprimePermissoes(int mode) {
 		c = (mode & (1 << i)) ? permissoes[(i % 3)] : '-';
 		printf("%c", c);
 	}
+}
+
+/**
+ * Função realiza um shift a direita.
+ * Recebe as streams já posicionadas no fim da area de leitura e de escrita do shitf, mais a quantidade de bytes que será shiftado.
+ */
+void shift_direita(FILE *destino, FILE *origem, int qntdDados) {
+	int bytesRestantes = qntdDados;
+	int pos_escritor = 0, pos_leitor = 0;
+	char buffer[kB];
+
+	// 
+	int ini_leitor = ftell(origem);
+	int ini_escritor = ftell(destino);
+
+
+	if(bytesRestantes >= kB) {
+		pos_leitor = fseek(origem, -kB, SEEK_CUR);
+		pos_escritor = fseek(destino, -kB, SEEK_CUR);
+	}
+
+	for(; bytesRestantes >= kB; bytesRestantes -= kB) {
+		fread(buffer, 1, kB, origem);
+		fwrite(buffer, 1, kB, destino);
+		pos_leitor = fseek(origem, pos_leitor - kB, SEEK_SET);
+		pos_escritor = fseek(destino, pos_escritor - kB, SEEK_SET);
+	}
+
+	fseek(origem, ini_leitor - qntdDados, SEEK_SET);
+	fseek(destino, ini_escritor - qntdDados, SEEK_SET);
+	fread(buffer, 1, bytesRestantes, origem);
+	fwrite(buffer, 1, bytesRestantes, destino);
+}
+
+/**
+ * Transporta N bytes da origem até o destino.
+ * Uma forma mais complicada de dizer shift para a esquerda.
+*/
+void transporta_n_bytes(FILE *destino, FILE *origem, int qntDados) {
+	int bytesRestantes = qntDados;
+	char buffer[kB];
+
+	for(; bytesRestantes >= kB; bytesRestantes -= kB) {
+		fread(buffer, 1, kB, origem);
+		fwrite(buffer, 1, kB, destino);
+	}
+
+	fread(buffer, 1, bytesRestantes, origem);
+	fwrite(buffer, 1, bytesRestantes, destino);
 }

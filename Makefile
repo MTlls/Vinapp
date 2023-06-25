@@ -24,7 +24,7 @@ $(addprefix $(src), data.o: data.c data.h saltos.o libLista.o libMetadado.o libU
 
 $(addprefix $(src), libMetadado.o: libMetadado.c libMetadado.h libUtils.o)
 
-$(addprefix $(src), libLista.o: libLista.c libLista.h saltos.o)
+$(addprefix $(src), libLista.o: libLista.c libLista.h saltos.o libUtils.o)
 
 $(addprefix $(src), salstos.o: saltos.c saltos.h)
 
