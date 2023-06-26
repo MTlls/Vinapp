@@ -108,13 +108,25 @@ int lista_insere_fim(lista_t *l, metadado_t *elemento) {
 }
 
 /* Ordena a lista e retorna a mesma */
-lista_t *lista_ordena_metadados(lista_t *l) {
+lista_t *ordena_lista(lista_t *l) {
 	nodo_l_t *NodoAtual;
-	int i;
+	nodo_l_t *Aux = NULL;
+	metadado_t *temp;
+
 	NodoAtual = l->ini;
 
-	for(i = 1; NodoAtual != NULL; i++) {
-		NodoAtual->elemento->posicao = i;
+	while(NodoAtual != NULL) {
+		Aux = NodoAtual->prox;
+
+		while(Aux != NULL) {
+			if(NodoAtual->elemento->posicao > Aux->elemento->posicao) {
+				/* Trocando os dois nodos */
+				temp = NodoAtual->elemento;
+				NodoAtual->elemento = Aux->elemento;
+				Aux->elemento = temp;
+			}
+			Aux = Aux->prox;
+		}
 		NodoAtual = NodoAtual->prox;
 	}
 
@@ -265,17 +277,24 @@ int lista_retira_elemento(lista_t *l, metadado_t *elemento) {
 /*** FUNÇÕES NOVAS ******/
 
 /**
- * Função que troca os elementos da lista e os reordena.
+ * Função que troca os ponteiros da lista e os reordena.
  */
-void lista_troca(lista_t *l, metadado_t *file1, metadado_t *file2) {
-	int aux = file1->localizacao;
+void lista_troca(lista_t *l, nodo_l_t *nodo_1, nodo_l_t *nodo_2) {
+	nodo_l_t *anterior1 = l->ini;
+	nodo_l_t *aux1, *aux2;
 
-	// Troca as posições dos arquivos (nos metadados).
-	file1->posicao = file2->posicao;
-	file2->posicao = aux;
+	if(nodo_1->elemento->posicao > 1) {
+		// Acha os nodos anteriores, caso ele não seja o primeiro
+		while(anterior1->prox != nodo_1)
+			anterior1 = anterior1->prox;
+		aux2 = nodo_1->prox;
+		anterior1->prox = aux2;
+	}
 
-	// Ordena a mesma por posiçao.
-	lista_ordena_metadados(l);
+	/* Trocando os dois nodos */
+	aux1 = nodo_2->prox;
+	nodo_2->prox = nodo_1;
+	nodo_1->prox = aux1;
 }
 
 /**
@@ -325,29 +344,37 @@ void lista_escreve_arquivo(FILE *file, lista_t *l) {
  * Função que retrocede os dados necessários dos metadados posteriores a ele.
  * Dados necessários = posicao e localizacao.
  * */
-void lista_altera_dados(nodo_l_t *nodo, altera_lista_t modo, int tamanho) {
+void lista_altera_dados(nodo_l_t *inicio, nodo_l_t *ultimo, altera_lista_t modo, int tamanho) {
 	nodo_l_t *NodoAtual;
-	NodoAtual = nodo->prox;
+	NodoAtual = inicio->prox;
 
 	switch(modo) {
 	case DIMINUI_RETROCEDE:
-		// Avança-se todas as posições e retrocede todos as localizacoes.
-		while(NodoAtual != NULL) {
+		// Retrocede-se todas as posições e as localizacoes.
+		while(NodoAtual != ultimo->prox) {
 			NodoAtual->elemento->posicao -= 1;
 			NodoAtual->elemento->localizacao -= tamanho;
 			NodoAtual = NodoAtual->prox;
 		}
 		break;
+	case AUMENTA_AVANCA:
+		// Avança-se todas as posicoes e as localizacoes
+		while(NodoAtual != ultimo->prox) {
+			NodoAtual->elemento->posicao += 1;
+			NodoAtual->elemento->localizacao += tamanho;
+			NodoAtual = NodoAtual->prox;
+		}
+		break;
 	case AUMENTA:
 		// Avança todas as localizacoes.
-		while(NodoAtual != NULL) {
+		while(NodoAtual != ultimo->prox) {
 			NodoAtual->elemento->localizacao += tamanho;
 			NodoAtual = NodoAtual->prox;
 		}
 		break;
 	case DIMINUI:
 		// Retrocede todas as localizacoes.
-		while(NodoAtual != NULL) {
+		while(NodoAtual != ultimo->prox) {
 			NodoAtual->elemento->localizacao -= tamanho;
 			NodoAtual = NodoAtual->prox;
 		}

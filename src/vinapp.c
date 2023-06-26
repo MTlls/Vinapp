@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 	if(argc == 1)
 		printf("Necessário mais argumentos!\n");
 
-	while((option = getopt(argc, argv, "hi:x:r:c:a:")) != -1) {
+	while((option = getopt(argc, argv, "hi:x:r:c:a:m:")) != -1) {
 		switch(option) {
 		case 'i':
 			// Captura o nome dos arquivos e para cada um chama a função
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 			for(i = optind; i < argc; i++)
 				// extrai(optarg, argv[i]);
 
-			break;
+				break;
 		case 'r':
 			// Captura o nome dos arquivos e para cada um chama a função
 			for(i = optind; i < argc; i++) {
@@ -52,6 +52,10 @@ int main(int argc, char **argv) {
 			for(i = optind; i < argc; i++) {
 				insercao(optarg, argv[i], OPTION_A);
 			}
+			break;
+		case 'm':
+			// Captura o nome dos arquivos e para cada um chama a função
+			movimenta(argv[optind], optarg, argv[optind + 1]);
 			break;
 		case '?':
 			printf("Opção inválida! Digite \"./vina++ -h\" para ver as opções.\n");

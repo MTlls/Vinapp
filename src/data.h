@@ -47,7 +47,6 @@ void shift_direita(FILE *destino, FILE *origem, int qntdDados);
 
 /**
  * Transporta N bytes da origem até o destino.
- * Uma forma mais complicada de dizer shift para a esquerda.
 */
 void transporta_n_bytes(FILE *destino, FILE *origem, int qntDados);
 #endif

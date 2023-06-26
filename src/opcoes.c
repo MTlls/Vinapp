@@ -22,7 +22,7 @@
 #define TEXTO_LISTA "Lista o conteúdo de archive em ordem, incluindo as propriedades de cada membro."
 #define TEXTO_AJUDA "Imprime essa pequena mensagem de ajuda com as opções disponíveis e encerra."
 
-void remove_arquivo(char *vppName, char *fileName) {
+void remove_arquivo(char *vpp_name, char *fileName) {
 	// vpp_adiantado é o vpp, só que a frente do ponto de leitura do vpp.
 	// Será usado para prevenir fseeks seguidos.
 	FILE *vpp, *vpp_adiantado;
@@ -33,7 +33,7 @@ void remove_arquivo(char *vppName, char *fileName) {
 	metadado_t *metadado_alvo = NULL;
 	int inicio, fim, file_size, l_tamanho;
 
-	if(!(vpp = fopen(vppName, "r+"))) {
+	if(!(vpp = fopen(vpp_name, "r+"))) {
 		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", fileName);
 		exit(1);
 	}
@@ -56,7 +56,7 @@ void remove_arquivo(char *vppName, char *fileName) {
 	// para ter apenas o offset como dado.
 	if(l_tamanho == 1) {
 		atualizaOffset(vpp, sizeof(int));
-		truncate(vppName, sizeof(int));
+		truncate(vpp_name, sizeof(int));
 		lista_destroi(lista);
 		fclose(vpp);
 		return;
@@ -68,18 +68,18 @@ void remove_arquivo(char *vppName, char *fileName) {
 	fim = metadado_alvo->localizacao + metadado_alvo->tamanho;
 
 	// Retrocede a posicao de todos os metadados posteriores.
-	lista_altera_dados(nodo_alvo, DIMINUI_RETROCEDE, metadado_alvo->tamanho);
+	lista_altera_dados(nodo_alvo, NULL, DIMINUI_RETROCEDE, metadado_alvo->tamanho);
 	// Retira o metadado alvo.
 	lista_retira_elemento(lista, metadado_alvo);
 	// Escreve a lista no arquivo.
 	lista_escreve_arquivo(vpp, lista);
 
 	// Exclui o último metadado que está sobrando.
-	truncate(vppName, ftell(vpp));
+	truncate(vpp_name, ftell(vpp));
 
 	// Será aberto mais outro FILE* para a leitura simultânea do mesmo arquivo.
 	// Só será necessário ler essa stream, por isso o modo "r".
-	if(!(vpp_adiantado = fopen(vppName, "r"))) {
+	if(!(vpp_adiantado = fopen(vpp_name, "r"))) {
 		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", fileName);
 		fclose(vpp);
 		exit(1);
@@ -98,7 +98,7 @@ void remove_arquivo(char *vppName, char *fileName) {
 	transporta_bytes(vpp, vpp_adiantado);
 
 	// Exclui o lixo que estava após o shift de dados.
-	truncate(vppName, ftell(vpp));
+	truncate(vpp_name, ftell(vpp));
 	lista_destroi(lista);
 
 	printf("Removido!\n");
@@ -118,7 +118,7 @@ void remove_arquivo(char *vppName, char *fileName) {
 /**
  * Função temporária, forja um .vpp
  */
-void insercao(char *vppName, char *fileName, tipo_insercao_t modo) {
+void insercao(char *vpp_name, char *fileName, tipo_insercao_t modo) {
 	FILE *vpp, *file, *vpp_ajudante;
 	lista_t *lista;
 	metadado_t *metadados;
@@ -153,9 +153,9 @@ void insercao(char *vppName, char *fileName, tipo_insercao_t modo) {
 	// Verifica-se primeiro se o destino está acessível
 	// caso esteja, o abre-se o arquivo no modo r+, economizando leitura dos
 	// arquivos já inseridos.
-	if(access(vppName, F_OK) == 0) {
-		if(!(vpp = fopen(vppName, "r+"))) {
-			fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
+	if(access(vpp_name, F_OK) == 0) {
+		if(!(vpp = fopen(vpp_name, "r+"))) {
+			fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vpp_name);
 			exit(1);
 		}
 
@@ -183,14 +183,14 @@ void insercao(char *vppName, char *fileName, tipo_insercao_t modo) {
 					}
 				}
 
-				if(!(vpp_ajudante = fopen(vppName, "r+"))) {
-					fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
+				if(!(vpp_ajudante = fopen(vpp_name, "r+"))) {
+					fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vpp_name);
 					exit(1);
 				}
 				// Substituicao do arquivo
 				substitui(vpp, vpp_ajudante, file, antigo, metadados);
 				// Truncado no começo da area diretório.
-				truncate(vppName, getOffset(vpp));
+				truncate(vpp_name, getOffset(vpp));
 				// Atualizado o diretorio.
 				atualizaDir(vpp, lista);
 
@@ -211,25 +211,30 @@ void insercao(char *vppName, char *fileName, tipo_insercao_t modo) {
 		offset += size;
 
 	} else {
-		if(!(vpp = fopen(vppName, "w+"))) {
-			fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
+		if(!(vpp = fopen(vpp_name, "w+"))) {
+			fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vpp_name);
 			exit(1);
 		}
 		// Primeiro arquivo, posição 1.
 		metadados->posicao = 1;
 		metadados->localizacao = 4;
 
+		// Atualiza o offset
+		atualizaOffset(vpp, sizeof(int));
+
 		// Escreve a posição que começa o diretório
 		offset = (size + sizeof(int));
 	}
+	seekDiretorio(vpp);
+
+	// Escreve os dados.
+	transporta_bytes(vpp, file);
+
 	// Atualiza o offset
 	atualizaOffset(vpp, offset);
 
 	// Insere o novo metadado na lista
 	lista_insere_fim(lista, metadados);
-
-	// Escreve os dados.
-	transporta_bytes(vpp, file);
 
 	// Atualiza o necessário sobre o diretório.
 	atualizaDir(vpp, lista);
@@ -240,19 +245,19 @@ void insercao(char *vppName, char *fileName, tipo_insercao_t modo) {
 	fclose(file);
 }
 
-void lista_arquivos(char *vppName, char **fileNames) {
+void lista_arquivos(char *vpp_name, char **fileNames) {
 	FILE *vpp;
 	lista_t *l;
 	metadado_t *metadados;
 
 	// Verifica-se primeiro se o destino está acessívels.
-	if(access(vppName, F_OK) == 0) {
-		if(!(vpp = fopen(vppName, "r"))) {
-			fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
+	if(access(vpp_name, F_OK) == 0) {
+		if(!(vpp = fopen(vpp_name, "r"))) {
+			fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vpp_name);
 			exit(1);
 		}
 	} else {
-		fprintf(stderr, "Erro ao abrir o archiver \"%s\".\n", vppName);
+		fprintf(stderr, "Erro ao abrir o archiver \"%s\".\n", vpp_name);
 		exit(1);
 	}
 	// Cria a lista.
@@ -347,7 +352,7 @@ void substitui(FILE *vpp, FILE *auxiliar, FILE *file, nodo_l_t *antigo, metadado
 
 		// Substitui o tamanho, uid, data de modificao e permissoes.
 		substitui_metadados(antigo->elemento, novo);
-		lista_altera_dados(antigo, AUMENTA, diferenca);
+		lista_altera_dados(antigo, NULL, AUMENTA, diferenca);
 	}
 	// Caso contrário.
 	else if(new_tam < old_tam) {
@@ -361,7 +366,7 @@ void substitui(FILE *vpp, FILE *auxiliar, FILE *file, nodo_l_t *antigo, metadado
 
 		// Substitui o tamanho, uid, data de modificao e permissoes.
 		substitui_metadados(antigo->elemento, novo);
-		lista_altera_dados(antigo, DIMINUI, diferenca);
+		lista_altera_dados(antigo, NULL, DIMINUI, diferenca);
 
 		// Soh para a diferença voltar ao negativo :)
 		diferenca = -diferenca;
@@ -377,11 +382,160 @@ void substitui(FILE *vpp, FILE *auxiliar, FILE *file, nodo_l_t *antigo, metadado
 	atualizaOffset(vpp, (offset + diferenca));
 }
 
-void offset(char *vppName) {
+void offset(char *vpp_name) {
 	FILE *vpp;
-	if(!(vpp = fopen(vppName, "r"))) {
-		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vppName);
+	if(!(vpp = fopen(vpp_name, "r"))) {
+		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vpp_name);
 		exit(1);
 	}
 	printf("offset:%d\n", getOffset(vpp));
+}
+
+void movimenta(char *vpp_name, char *target_name, char *member_name) {
+	FILE *vpp, *vpp_ajudante;
+	lista_t *l;
+	metadado_t *target, *member;
+	nodo_l_t *member_n, *target_n;
+
+	// Tamanho máximo de um caminho!
+	char target_name_format[4096], member_name_format[4096];
+	int member_size, member_final,
+	    qntDados_shiftado, target_next, target_final, member_next;
+
+	if(!(vpp = fopen(vpp_name, "r+"))) {
+		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vpp_name);
+		exit(1);
+	}
+
+	if(!(vpp_ajudante = fopen(vpp_name, "r+"))) {
+		fprintf(stderr, "Erro ao abrir o arquivo \"%s\".\n", vpp_name);
+		exit(1);
+	}
+
+	if((l = lista_cria()) == NULL) {
+		fprintf(stderr, "Erro ao iniciar a lista.\n");
+		fclose(vpp);
+		fclose(vpp_ajudante);
+		exit(1);
+	}
+
+	// Formata os dois caminhos para começar a movimentacao
+	formataCaminho(target_name_format, target_name);
+	formataCaminho(member_name_format, member_name);
+
+	// Insere os metadados na lista
+	lista_insere_metadados(vpp, l);
+
+	if(!(lista_pertence(l, target_name_format)) || !(lista_pertence(l, member_name_format))) {
+		fprintf(stderr, "Não existe esses arquivos no archiver, tente com algum desses:\n");
+		lista_imprime(l);
+		exit(1);
+	}
+
+	// Captura os respectivos metadados
+	target_n = getNodo(l, target_name_format);
+	member_n = getNodo(l, member_name_format);
+
+	if(target_n->prox == member_n) {
+		fprintf(stdout, "Arquivo já é o próximo imediato do target. Segue a lista dos arquivos:\n");
+		lista_imprime(l);
+		exit(0);
+	}
+
+	target = target_n->elemento;
+	member = member_n->elemento;
+
+	// Tamanho de cada arquivo
+	member_size = member->tamanho;
+	// target_size = target->tamanho;
+	member_final = (member->localizacao + member->tamanho - 1);
+	target_final = (target->localizacao + target->tamanho - 1);
+	target_next = target_final + 1;
+	member_next = member_final + 1;
+
+	// Vpp aponta para o começo do diretorio e o  ajudante para o começo do member.
+	seekDiretorio(vpp);
+	fseek(vpp_ajudante, member->localizacao, SEEK_SET);
+
+	// Movimenta member para o final do arquivo para facilitar
+	transporta_n_bytes(vpp, vpp_ajudante, member_size);
+
+	// Trunca para não haver dados sobrando.
+	truncate(vpp_name, ftell(vpp));
+
+	// Os shifts são diferentes dependendo da posicao do target e do member
+	// Primeiro caso: member está a frente de target.
+	if(target->posicao < member->posicao) {
+		// qntDados_shiftado = final do arquivo anterior ao member - começo arquivo depois de target
+		qntDados_shiftado = (member->localizacao - 1) - target_next;
+
+		// vpp aponta para o final do member
+		fseek(vpp, member_final, SEEK_SET);
+
+		// ajudante aponta para o final do membro anterior a ele
+		fseek(vpp_ajudante, member->localizacao - 1, SEEK_SET);
+
+		// Shift a direita de tudo entre target e member
+		shift_direita(vpp, vpp_ajudante, qntDados_shiftado);
+
+		// vpp aponta para o proximo arquivo de target
+		fseek(vpp, target_next, SEEK_SET);
+
+		// ajudante aponta para a area do diretorio contendo os dados de member
+		seekDiretorio(vpp_ajudante);
+
+		// Transporta o member para depois de target.
+		transporta_bytes(vpp, vpp_ajudante);
+
+		// Altera todos os dados posteriores de file1
+		lista_altera_dados(target_n, member_n, AUMENTA_AVANCA, member->tamanho);
+		
+		// Troca as posições dos arquivos (nos metadados).
+		member->posicao = target->posicao + 1;
+		member->localizacao =  target_next;
+
+		// Troca os ponteiros de prox na lista
+		lista_troca(l, member_n, target_n);
+
+		// Atualiza o diretório.
+		atualizaDir(vpp, l);
+	}
+	// Segundo caso: member está antes de target
+	else {
+		// qntDados_shiftado = final do arquivo target - começo arquivo depois de member
+		qntDados_shiftado = (target_final) - (member_next);
+
+		// vpp aponta para o começo de member
+		fseek(vpp, member_final, SEEK_SET);
+
+		// ajudante aponta para comeco do membro posterior a ele
+		fseek(vpp_ajudante, member_next, SEEK_SET);
+
+		// Shift a direita de tudo entre target e member
+		transporta_n_bytes(vpp, vpp_ajudante, qntDados_shiftado);
+
+		// vpp aponta para o proximo arquivo de target
+		fseek(vpp, target_next - member_size, SEEK_SET);
+
+		// ajudante aponta para a area do diretorio contendo os dados de member
+		seekDiretorio(vpp_ajudante);
+
+		// Transporta o member para depois de target.
+		transporta_bytes(vpp, vpp_ajudante);
+
+		// Altera todas as posicoes
+		lista_altera_dados(member_n, target_n, DIMINUI_RETROCEDE, member->tamanho);
+		
+		// Troca as posições e localizacoes dos arquivos (nos metadados).
+		member->posicao = target->posicao +1;
+		member->localizacao = target->localizacao + target->tamanho;
+
+		// Troca o proximo ponteiro de target pelo membro
+		lista_troca(l, member_n, target_n);
+
+		// Atualiza o diretório.
+		atualizaDir(vpp, l);
+	}
+	// Trunca para não haver dados sobrando.
+	truncate(vpp_name, ftell(vpp));
 }

@@ -20,6 +20,7 @@ typedef struct lista lista_t;
 
 enum altera_lista {
 	DIMINUI_RETROCEDE,  // Retrocede metadados, usado em remoção para atualizar os dados
+	AUMENTA_AVANCA,     // Avança metadados, usado em movimentação
 	AUMENTA,            // Aumenta o tamanho dos metadados, usado ao substituir.
 	DIMINUI             // Diminui o tamanho dos metadados, usado ao substituir.
 };
@@ -97,7 +98,7 @@ void lista_imprime(lista_t *l);
 /**
  * Função que troca os elementos da lista e os reordena.
  */
-void lista_troca(lista_t *l, metadado_t *file1, metadado_t *file2);
+void lista_troca(lista_t *l, nodo_l_t *nodo_1, nodo_l_t *nodo_2);
 
 /**
  * Função que insere todos os metadados do diretório.
@@ -110,10 +111,10 @@ void lista_insere_metadados(FILE *file, lista_t *l);
 void lista_escreve_arquivo(FILE *arq, lista_t *l);
 
 /**
- * Função que retrocede os dados necessários dos metadados posteriores a ele.
+ * Função que altera os dados necessários dos metadados posteriores a ele até o ultimo. Caso o "ultimo" esteja como NULL, executa até o fim da lista.
  * Dados necessários = posicao e localizacao.
  **/
-void lista_altera_dados(nodo_l_t *nodo, altera_lista_t modo, int tamanho);
+void lista_altera_dados(nodo_l_t *nodo, nodo_l_t *ultimo, altera_lista_t modo, int tamanho);
 
 /**
  * Função que retorna o nodo da lista que possui o metadado com o nome especificado. Retorna NULL caso contrário.

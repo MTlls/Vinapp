@@ -21,12 +21,12 @@ void remove_arquivo(char *vpp, char* fileName);
 /**
  * Função temporária, forja um .vpp
  */
-void insercao(char *vppName, char *fileName, tipo_insercao_t modo);
+void insercao(char *vpp_name, char *fileName, tipo_insercao_t modo);
 
 /**
  * Função que lista todos os arquivos presentes no archiver.
  */
-void lista_arquivos(char *vppName, char **fileNames);
+void lista_arquivos(char *vpp_name, char **fileNames);
 
 
 /**
@@ -39,5 +39,8 @@ void help();
  */
 void substitui(FILE *leitor, FILE *escritor, FILE *file, nodo_l_t *antigo, metadado_t *novo);
 
-
+/**
+ * Função que move o membro indicado para imediatamente depois do target/alvo existente em archive.
+*/
+void movimenta(char *vpp_name, char *target_name, char *member_name);
 #endif

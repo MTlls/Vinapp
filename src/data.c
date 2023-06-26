@@ -8,8 +8,8 @@
 
 #include "libLista.h"
 #include "libMetadado.h"
-#include "saltos.h"
 #include "libUtils.h"
+#include "saltos.h"
 
 #define kB 1024
 #define BLOCO_BYTE 341
@@ -139,10 +139,9 @@ void shift_direita(FILE *destino, FILE *origem, int qntdDados) {
 	int pos_escritor = 0, pos_leitor = 0;
 	char buffer[kB];
 
-	// 
+	//
 	int ini_leitor = ftell(origem);
 	int ini_escritor = ftell(destino);
-
 
 	if(bytesRestantes >= kB) {
 		pos_leitor = fseek(origem, -kB, SEEK_CUR);
@@ -164,8 +163,7 @@ void shift_direita(FILE *destino, FILE *origem, int qntdDados) {
 
 /**
  * Transporta N bytes da origem até o destino.
- * Uma forma mais complicada de dizer shift para a esquerda.
-*/
+ */
 void transporta_n_bytes(FILE *destino, FILE *origem, int qntDados) {
 	int bytesRestantes = qntDados;
 	char buffer[kB];
